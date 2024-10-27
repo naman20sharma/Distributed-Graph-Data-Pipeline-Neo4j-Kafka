@@ -54,7 +54,7 @@ class DataLoader:
         trips['tpep_dropoff_datetime'] = pd.to_datetime(trips['tpep_dropoff_datetime'], format='%Y-%m-%d %H:%M:%S')
         
         # Convert to csv and store in the current directory
-        save_loc = "/var/lib/neo4j/import/" + file_path.split(".")[0] + '.csv'
+        save_loc = "/var/lib/neo4j/import/" + file_path.split("/")[-1].split(".")[0] + '.csv'
         trips.to_csv(save_loc, index=False)
 
         # TODO: Your code here
