@@ -29,31 +29,37 @@ class Interface:
     def pagerank(self, max_iterations, weight_property):
         # TODO: Implement this method
         with self._driver.session() as session:
-            result = session.run("""
-                CALL gds.pageRank.stream({
-                    nodeProjection: 'Location',
-                    relationshipProjection: {
-                        TRIP: {
-                            type: 'TRIP',
-                            orientation: 'UNDIRECTED',
-                            properties: $weight_property
-                        }
-                    },
-                    maxIterations: $max_iterations,
-                    dampingFactor: 0.85
-                })
-                YIELD nodeId, score
-                RETURN gds.util.asNode(nodeId).name AS location_id, score
-                ORDER BY score DESC
-            """, max_iterations=max_iterations, weight_property=weight_property)
+            session.run("""
+            CALL gds.graph.project(
+                'myGraph',
+                'Location',
+                {
+                    TRIP: {
+                        orientation: 'UNDIRECTED',
+                        properties: $weight_property
+                    }
+                }
+            )
+        """, weight_property=weight_property)
 
-            # Extract all PageRank results
-            pagerank_scores = [{"location_id": record["location_id"], "score": record["score"]} for record in result]
+        # Step 2: Run the PageRank algorithm on the projected graph
+        result = session.run("""
+            CALL gds.pageRank.stream('myGraph')
+            YIELD nodeId, score
+            RETURN gds.util.asNode(nodeId).name AS location_id, score
+            ORDER BY score DESC
+        """, max_iterations=max_iterations)
 
-            # Identify the node with maximum and minimum PageRank scores
-            if pagerank_scores:
-                max_pagerank = pagerank_scores[0]  # Node with the highest PageRank
-                min_pagerank = pagerank_scores[-1]  # Node with the lowest PageRank
-                return {"max": max_pagerank, "min": min_pagerank}
-            else:
-                return {"max": None, "min": None}
+        # Collect all PageRank results
+        pagerank_scores = [{"location_id": record["location_id"], "score": record["score"]} for record in result]
+
+        # Step 3: Clean up the in-memory graph
+        session.run("CALL gds.graph.drop('myGraph')")
+
+        # Identify max and min PageRank scores
+        if pagerank_scores:
+            max_pagerank = pagerank_scores[0]  # Node with the highest PageRank
+            min_pagerank = pagerank_scores[-1]  # Node with the lowest PageRank
+            return {"max": max_pagerank, "min": min_pagerank}
+        else:
+            return {"max": None, "min": None}

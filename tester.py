@@ -39,9 +39,9 @@ class TesterConnect:
             num_edges = result.data()[0]['num_edges']
 
             if (num_nodes == 42):
-                print("\tCount of Edges is correct: PASS")
+                print("\tCount of nodes is correct: PASS")
             else:
-                print("\tCount of Edges is incorrect: FAIL")
+                print("\tCount of nodes is incorrect: FAIL")
 
             if (num_edges == 1530):
                 print("\tCount of Edges is correct: PASS")
