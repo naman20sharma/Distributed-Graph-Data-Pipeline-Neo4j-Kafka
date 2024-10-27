@@ -11,33 +11,55 @@ class Interface:
     def bfs(self, start_node, last_node):
         # TODO: Implement this method
         with self._driver.session() as session:
+            session.run("""
+                CALL gds.graph.project(
+                    'bfsGraph',
+                    'Location',
+                    {
+                        TRIP: {
+                            type: 'TRIP',
+                            properties: ['distance']
+                        }
+                    }
+                )
+            """)
+
+            # Run BFS algorithm on the projected graph
             query = """
                 MATCH (start:Location {name: $start_node}), (end:Location {name: $last_node})
-                CALL gds.bfs.stream({
-                    nodeProjection: 'Location',
-                    relationshipProjection: 'TRIP',
-                    startNode: id(start),
-                    targetNodes: [id(end)],
-                    relationshipWeightProperty: 'distance'
+                CALL gds.bfs.stream('bfsGraph', {
+                    sourceNode: id(start),
+                    targetNodes: [id(end)]
                 })
-                YIELD nodeId, path
+                YIELD path
                 RETURN path
-                LIMIT 1
             """
             result = session.run(query, start_node=start_node, last_node=last_node)
 
-            # Collect paths to each target node along with their total costs
-            paths = []
-            for record in result:
-                path = [{"name": node["name"]} for node in record["path"]]
-                paths.append({"path": path})
+            # Collect paths from the result
+            paths = [
+                {
+                    "path": [{"name": node["name"]} for node in record["path"].nodes]
+                } for record in result
+            ]
+
+             # Drop the graph projection to free up resources
+            session.run("""
+                CALL gds.graph.drop('bfsGraph')
+                YIELD graphName
+            """)
+
             return paths
+
 
     def pagerank(self, max_iterations, weight_property):
         # TODO: Implement this method
         # Implementing PageRank using Neo4j's Graph Data Science (GDS) library.
+        if weight_property not in ["distance", "fare"]:
+            raise ValueError("weight_property must be either 'distance' or 'fare'")
+
         with self._driver.session() as session:
-            # First, make sure the graph is projected for GDS processing
+            # Project the graph
             session.run("""
                 CALL gds.graph.project(
                     'pageRankGraph',
@@ -50,12 +72,7 @@ class Interface:
                 )
             """, weight_properties=[weight_property])
             
-            # Check if projection was successful
-            result = session.run("CALL gds.graph.exists('pageRankGraph') YIELD exists RETURN exists")
-            if not result.single()["exists"]:
-                raise RuntimeError("Graph projection failed. Please check your data.")
-
-            # Running the PageRank algorithm
+            # Run PageRank
             query = """
                 CALL gds.pageRank.stream('pageRankGraph', {
                     maxIterations: $max_iterations,
@@ -64,9 +81,18 @@ class Interface:
                 })
                 YIELD nodeId, score
                 RETURN gds.util.asNode(nodeId).name AS name, score
-                ORDER BY score DESC
-                LIMIT 2
             """
             result = session.run(query, max_iterations=max_iterations, weight_property=weight_property)
-            nodes = [{"name": int(record["name"]), "score": record["score"]} for record in result]
-            return nodes
+            all_results = [{"name": record["name"], "score": round(record["score"], 5)} for record in result]
+
+            # Find max and min PageRank nodes
+            max_node = max(all_results, key=lambda x: x['score'])
+            min_node = min(all_results, key=lambda x: x['score'])
+
+            # Drop the graph projection to free up resources
+            session.run("""
+                CALL gds.graph.drop('pageRankGraph')
+                YIELD graphName
+            """)
+
+            return [max_node, min_node]
