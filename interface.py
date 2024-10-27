@@ -13,15 +13,16 @@ class Interface:
         with self._driver.session() as session:
             result = session.run("""
                 MATCH (start:Location {name: $start_node})
-                CALL gds.beta.bfs.stream({
-                    startNode: start,
-                    targetNodes: [$last_node],
+                CALL gds.alpha.bfs.stream({
+                    startNode: id(start),
+                    targetNodes: $last_node,
                     relationshipWeightProperty: 'trip_distance'
                 })
                 YIELD path, totalCost
                 RETURN path, totalCost
             """, start_node=start_node, last_node=last_node)
 
+            # Collect paths to each target node along with their total costs
             paths = [{"path": record["path"], "totalCost": record["totalCost"]} for record in result]
             return paths
 
@@ -32,8 +33,11 @@ class Interface:
                 CALL gds.pageRank.stream({
                     nodeProjection: 'Location',
                     relationshipProjection: {
-                        type: 'TRIP',
-                        properties: $weight_property
+                        TRIP: {
+                            type: 'TRIP',
+                            orientation: 'UNDIRECTED',
+                            properties: $weight_property
+                        }
                     },
                     maxIterations: $max_iterations,
                     dampingFactor: 0.85
@@ -43,6 +47,13 @@ class Interface:
                 ORDER BY score DESC
             """, max_iterations=max_iterations, weight_property=weight_property)
 
+            # Extract all PageRank results
             pagerank_scores = [{"location_id": record["location_id"], "score": record["score"]} for record in result]
-            return pagerank_scores
 
+            # Identify the node with maximum and minimum PageRank scores
+            if pagerank_scores:
+                max_pagerank = pagerank_scores[0]  # Node with the highest PageRank
+                min_pagerank = pagerank_scores[-1]  # Node with the lowest PageRank
+                return {"max": max_pagerank, "min": min_pagerank}
+            else:
+                return {"max": None, "min": None}
