@@ -11,19 +11,26 @@ class Interface:
     def bfs(self, start_node, last_node):
         # TODO: Implement this method
         with self._driver.session() as session:
-            result = session.run("""
-                MATCH (start:Location {name: $start_node})
-                CALL gds.alpha.bfs.stream({
+            query = """
+                MATCH (start:Location {name: $start_node}), (end:Location {name: $last_node})
+                CALL gds.bfs.stream({
+                    nodeProjection: 'Location',
+                    relationshipProjection: 'TRIP',
                     startNode: id(start),
-                    targetNodes: $last_node,
-                    relationshipWeightProperty: 'trip_distance'
+                    targetNodes: [id(end)],
+                    relationshipWeightProperty: 'distance'
                 })
-                YIELD path, totalCost
-                RETURN path, totalCost
-            """, start_node=start_node, last_node=last_node)
+                YIELD nodeId, path
+                RETURN path
+                LIMIT 1
+            """
+            result = session.run(query, start_node=start_node, last_node=last_node)
 
             # Collect paths to each target node along with their total costs
-            paths = [{"path": record["path"], "totalCost": record["totalCost"]} for record in result]
+            paths = []
+            for record in result:
+                path = [{"name": node["name"]} for node in record["path"]]
+                paths.append({"path": path})
             return paths
 
     def pagerank(self, max_iterations, weight_property):
@@ -61,5 +68,5 @@ class Interface:
                 LIMIT 2
             """
             result = session.run(query, max_iterations=max_iterations, weight_property=weight_property)
-            nodes = result.data()
+            nodes = [{"name": int(record["name"]), "score": record["score"]} for record in result]
             return nodes
