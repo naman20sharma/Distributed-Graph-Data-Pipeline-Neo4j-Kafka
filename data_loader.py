@@ -73,10 +73,10 @@ class DataLoader:
                     MATCH (start:Location {name: $pickup_location_id})
                     MATCH (end:Location {name: $dropoff_location_id})
                     MERGE (start)-[trip:TRIP {
-                        trip_distance: $trip_distance,
-                        fare_amount: $fare_amount,
-                        tpep_pickup_datetime: $pickup_datetime,
-                        tpep_dropoff_datetime: $dropoff_datetime
+                        distance: $trip_distance,
+                        fare: $fare_amount,
+                        pickup_dt: $pickup_datetime,
+                        dropoff_dt: $dropoff_datetime
                     }]->(end)
                 """, 
                 pickup_location_id=int(row['PULocationID']),

@@ -28,38 +28,38 @@ class Interface:
 
     def pagerank(self, max_iterations, weight_property):
         # TODO: Implement this method
+        # Implementing PageRank using Neo4j's Graph Data Science (GDS) library.
         with self._driver.session() as session:
+            # First, make sure the graph is projected for GDS processing
             session.run("""
-            CALL gds.graph.project(
-                'myGraph',
-                'Location',
-                {
-                    TRIP: {
-                        orientation: 'UNDIRECTED',
-                        properties: $weight_property
+                CALL gds.graph.project(
+                    'pageRankGraph',
+                    'Location',
+                    {
+                        TRIP: {
+                            properties: $weight_properties
+                        }
                     }
-                }
-            )
-        """, weight_property=weight_property)
+                )
+            """, weight_properties=[weight_property])
+            
+            # Check if projection was successful
+            result = session.run("CALL gds.graph.exists('pageRankGraph') YIELD exists RETURN exists")
+            if not result.single()["exists"]:
+                raise RuntimeError("Graph projection failed. Please check your data.")
 
-        # Step 2: Run the PageRank algorithm on the projected graph
-        result = session.run("""
-            CALL gds.pageRank.stream('myGraph')
-            YIELD nodeId, score
-            RETURN gds.util.asNode(nodeId).name AS location_id, score
-            ORDER BY score DESC
-        """, max_iterations=max_iterations)
-
-        # Collect all PageRank results
-        pagerank_scores = [{"location_id": record["location_id"], "score": record["score"]} for record in result]
-
-        # Step 3: Clean up the in-memory graph
-        session.run("CALL gds.graph.drop('myGraph')")
-
-        # Identify max and min PageRank scores
-        if pagerank_scores:
-            max_pagerank = pagerank_scores[0]  # Node with the highest PageRank
-            min_pagerank = pagerank_scores[-1]  # Node with the lowest PageRank
-            return {"max": max_pagerank, "min": min_pagerank}
-        else:
-            return {"max": None, "min": None}
+            # Running the PageRank algorithm
+            query = """
+                CALL gds.pageRank.stream('pageRankGraph', {
+                    maxIterations: $max_iterations,
+                    dampingFactor: 0.85,
+                    relationshipWeightProperty: $weight_property
+                })
+                YIELD nodeId, score
+                RETURN gds.util.asNode(nodeId).name AS name, score
+                ORDER BY score DESC
+                LIMIT 2
+            """
+            result = session.run(query, max_iterations=max_iterations, weight_property=weight_property)
+            nodes = result.data()
+            return nodes
