@@ -83,7 +83,7 @@ class Interface:
                 RETURN gds.util.asNode(nodeId).name AS name, score
             """
             result = session.run(query, max_iterations=max_iterations, weight_property=weight_property)
-            all_results = [{"name": record["name"], "score": round(record["score"], 5)} for record in result]
+            all_results = [{"name": record["name"], "score": record["score"]} for record in result]
 
             # Find max and min PageRank nodes
             max_node = max(all_results, key=lambda x: x['score'])
