@@ -1,19 +1,13 @@
-# Project-1-nshar108
+# Distributed Graph Data Pipeline with Neo4j, Kafka, and Kubernetes
 
-**ASU ID**: 1230090591  
-**ASURITE Email**: nshar108@asu.edu  
-
-## NYC Yellow Taxi Data Processing with Neo4j, Kafka, and Kubernetes  
-
-This project extends the NYC Yellow Taxi trip data processing from Phase-1 by integrating a robust pipeline with Apache Kafka, Zookeeper, Neo4j, and Kubernetes. The ecosystem enables real-time ingestion, processing, and analysis of data using graph algorithms like Breadth-First Search (BFS) and PageRank with Neo4j's Graph Data Science (GDS) plugin.
+Distributed pipeline that streams trip data through Kafka into Neo4j, then applies graph algorithms (BFS and PageRank via Neo4j GDS) for route and connectivity analysis. Kubernetes resources orchestrate Kafka, Zookeeper, Neo4j, and the Kafka–Neo4j connector for end-to-end automation.
 
 ---
 
-**Pod Readiness: Ensure each pod is in a healthy state before proceeding to the next step. Transitioning prematurely can cause errors in data flow and service connections.**
+This is the public link for the project report:  
+https://drive.google.com/file/d/1qdsSOy4WpAs1zqlUhSAWZkPkLyNAR0Up/view?usp=sharing
 
 ---
-
-## Project-1 Phase-2  
 
 ### Prerequisites  
 - **Minikube**: For creating a local Kubernetes cluster.  
@@ -27,6 +21,8 @@ In **Phase-2**, the primary focus is on building an ecosystem to process streami
 ---
 
 ## Steps to Execute  
+
+> Pod readiness matters: ensure each pod is healthy before moving to the next step to avoid disruptions in data flow or service connections.
 
 ### Step 0: Start Minikube  
 Start the Minikube cluster with sufficient resources:  
