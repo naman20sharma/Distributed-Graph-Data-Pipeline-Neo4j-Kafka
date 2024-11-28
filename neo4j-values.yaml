@@ -1,0 +1,33 @@
+neo4j:
+  name: neo4j-standalone
+  password: "project1phase2"  # Sets the initial Neo4j password
+  acceptLicenseAgreement: "yes"  # Accepts the Neo4j license agreement
+  edition: community  # Uses the Community Edition of Neo4j
+  resources:
+    cpu: "2"  # Requests 2 CPUs
+    memory: "4Gi"  # Requests 4Gi of memory
+  
+volumes:
+  data:
+    mode: defaultStorageClass  # Uses dynamic provisioning
+    defaultStorageClass:
+      requests:
+        storage: 4Gi  # Requests 4Gi of persistent storage
+
+env:
+  NEO4J_PLUGINS: '["graph-data-science"]'  # Installs the GDS plugin
+
+config:
+  server.default_listen_address: "0.0.0.0"
+  server.bolt.listen_address: "0.0.0.0:7687"
+  server.http.listen_address: "0.0.0.0:7474"
+  dbms.security.procedures.unrestricted: "gds.*,gds.graph.*"   # Enables unrestricted access for GDS procedures
+  server.bolt.enabled: "true"
+  server.http.enabled: "true"
+  dbms.connector.bolt.tls_level: "DISABLED" 
+
+service:
+  neo4j:
+    enabled: false
+  internals:
+    enabled: true
