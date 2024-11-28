@@ -11,6 +11,18 @@ class Interface:
     def bfs(self, start_node, last_node):
         # TODO: Implement this method
         with self._driver.session() as session:
+            # Drop the graph if it already exists
+            session.run("""
+                CALL gds.graph.exists('bfsGraph')
+                YIELD exists
+                WITH exists
+                WHERE exists
+                CALL gds.graph.drop('bfsGraph')
+                YIELD graphName
+                RETURN graphName
+            """)
+
+            # Create the graph projection
             session.run("""
                 CALL gds.graph.project(
                     'bfsGraph',
@@ -26,13 +38,13 @@ class Interface:
 
             # Run BFS algorithm on the projected graph
             query = """
-                MATCH (start:Location {name: $start_node}), (end:Location {name: $last_node})
-                CALL gds.bfs.stream('bfsGraph', {
-                    sourceNode: id(start),
-                    targetNodes: [id(end)]
-                })
-                YIELD path
-                RETURN path
+            MATCH (start:Location {name: $start_node}), (end:Location {name: $last_node})
+            CALL gds.bfs.stream('bfsGraph', {
+                sourceNode: start,
+                targetNodes: [end]
+            })
+            YIELD path
+            RETURN path
             """
             result = session.run(query, start_node=start_node, last_node=last_node)
 
@@ -43,14 +55,14 @@ class Interface:
                 } for record in result
             ]
 
-             # Drop the graph projection to free up resources
+            # Drop the graph projection to free up resources
             session.run("""
                 CALL gds.graph.drop('bfsGraph')
                 YIELD graphName
+                RETURN graphName
             """)
 
-            return paths
-
+        return paths
 
     def pagerank(self, max_iterations, weight_property):
         # TODO: Implement this method
@@ -59,20 +71,37 @@ class Interface:
             raise ValueError("weight_property must be either 'distance' or 'fare'")
 
         with self._driver.session() as session:
-            # Project the graph
+            # Drop the graph if it already exists
+            session.run("""
+                CALL gds.graph.exists('pageRankGraph')
+                YIELD exists
+                WITH exists
+                WHERE exists
+                CALL gds.graph.drop('pageRankGraph')
+                YIELD graphName
+                RETURN graphName
+            """)
+
+            # Project the graph, including the 'name' property of nodes
             session.run("""
                 CALL gds.graph.project(
                     'pageRankGraph',
-                    'Location',
+                    {
+                        Location: {
+                            label: 'Location',
+                            properties: ['name']
+                        }
+                    },
                     {
                         TRIP: {
+                            type: 'TRIP',
                             properties: $weight_properties
                         }
                     }
                 )
             """, weight_properties=[weight_property])
-            
-            # Run PageRank
+
+            # Run PageRank algorithm
             query = """
                 CALL gds.pageRank.stream('pageRankGraph', {
                     maxIterations: $max_iterations,
@@ -80,7 +109,7 @@ class Interface:
                     relationshipWeightProperty: $weight_property
                 })
                 YIELD nodeId, score
-                RETURN gds.util.asNode(nodeId).name AS name, score
+                RETURN gds.util.nodeProperty('pageRankGraph', nodeId, 'name') AS name, score
             """
             result = session.run(query, max_iterations=max_iterations, weight_property=weight_property)
             all_results = [{"name": record["name"], "score": record["score"]} for record in result]
@@ -93,6 +122,7 @@ class Interface:
             session.run("""
                 CALL gds.graph.drop('pageRankGraph')
                 YIELD graphName
+                RETURN graphName
             """)
 
-            return [max_node, min_node]
+        return [max_node, min_node]
