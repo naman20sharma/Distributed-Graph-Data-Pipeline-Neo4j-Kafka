@@ -1,2 +1,9 @@
 
 .DS_Store
+*.json
+*.pyc
+grader.md
+*.zip
+Step-3 Refs/Dockerfile
+Step-3 Refs/init.sh
+*.parquet
