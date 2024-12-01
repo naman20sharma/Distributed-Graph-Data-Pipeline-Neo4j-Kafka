@@ -58,7 +58,7 @@ for index, row in trips.iterrows():
     print("Message sent to Kafka: {}".format(message))
 
 
-    time.sleep(0.25)
+    #time.sleep(0.25)
 
 # close the producer connection
 print('all done')
