@@ -19,16 +19,16 @@ spec:
         - name: kafka-neo4j-connector
           image: veedata/kafka-neo4j-connect:latest2  # Custom Docker image
           ports:
-            - containerPort: 8083  # Kafka Connect REST API port
-          env:  # Environment variables for Kafka Connect
+            - containerPort: 8083
+          env:
             - name: CONNECT_REST_ADVERTISED_HOST_NAME
               value: "kafka-neo4j-connector"
             - name: CONNECT_BOOTSTRAP_SERVERS
-              value: "kafka-service:29092"  # Kafka bootstrap server
+              value: "kafka-service:29092"  
             - name: CONNECT_REST_PORT
-              value: "8083"  # REST API port for Kafka Connect
+              value: "8083"
             - name: CONNECT_GROUP_ID
-              value: "neo4j-sink-connector"  # Kafka Connect group ID
+              value: "neo4j-sink-connector"
             - name: CONNECT_CONFIG_STORAGE_TOPIC
               value: "_connect-configs"
             - name: CONNECT_OFFSET_STORAGE_TOPIC
@@ -60,14 +60,18 @@ spec:
             - name: CONNECT_NEO4J_AUTHENTICATION_BASIC_USERNAME
               value: "neo4j"
             - name: CONNECT_NEO4J_AUTHENTICATION_BASIC_PASSWORD
-              value: "project1phase2"  
-          resources:  # Resource requests and limits for the connector pod
+              value: "project1phase2"
+            - name: CONNECT_RETRY_BACKOFF_MS
+              value: "5000"
+            - name: CONNECT_RETRIES_MAX
+              value: "10"
+          resources:  
             requests:
-              memory: "2Gi"  # Minimum memory required
-              cpu: "1"      # Minimum CPU required
+              memory: "2Gi"  
+              cpu: "1"      
             limits:
-              memory: "2Gi"  # Maximum memory allowed
-              cpu: "2"      # Maximum CPU allowed
+              memory: "2Gi"  
+              cpu: "2"      
 
 ---
 # Service
