@@ -124,10 +124,17 @@ Install required Python libraries:
 pip3 install confluent-kafka neo4j pandas pyarrow requests
 ```
 
-Run the data producer to send trip data to Kafka:  
+Run the data producer to send trip data to Kafka:
+
 ```bash
 python3 data_producer.py
 ```
+
+**Note**: You can significantly reduce the data loading time by commenting out or removing the time.sleep(0.25) line in data_producer.py.
+	•	With time.sleep(0.25): The data loading process takes approximately **6 minutes**.
+	•	Without time.sleep(0.25): The data loading process completes in about **10 seconds**.
+
+For faster execution during testing or debugging, consider disabling the delay. However, the delay may be useful for simulating real-world data streaming scenarios.
 
 Test the implementation using the provided tester script:  
 ```bash
